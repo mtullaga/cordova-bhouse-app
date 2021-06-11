@@ -1,0 +1,185 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('billings/billings.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Billing Statement
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+
+    <table class="table table-stripped" style="margin-top: 3px">
+      <tr>
+        <td>Boarder Name:</td>
+        <td id="boarderNameView"></td>
+      </tr>
+      <tr>
+        <td>Contact #1:</td>
+        <td id="contactNumView1"></td>
+      </tr>
+      <tr>
+        <td>Contact #2:</td>
+        <td id="contactNumView2"></td>
+      </tr>
+      <tr>
+        <td>Companion:</td>
+        <td id="companionView"></td>
+      </tr>
+      <tr>
+        <td>Companion #:</td>
+        <td id="companionNumView"></td>
+      </tr>
+      <tr>
+        <td>House Name: </td>
+        <td id="houseNameView"></td>
+      </tr>
+      <tr>
+        <td>Room Name: </td>
+        <td id="roomNameView"></td>
+      </tr>
+      <tr>
+        <td>Room Rate:</td>
+        <td id="roomRateView"></td>
+      </tr>
+      <tr>
+        <td>Date Started: </td>
+        <td id="dateStartedView"></td>
+      </tr>
+      <tr>
+        <td>Active Boarder: </td>
+        <td id="activeBoarderView"></td>
+      </tr>
+      <tr>
+        <td>Billing Statement: </td>
+        <td><button class="btn btn-primary btn-sm" onclick="viewBilling()">View Billing</button></td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <center>
+            <button class="btn btn-success w-50 btn-sm mt-3" style="width: 90px" id="bupdateBoarder" onclick="updateBoarder()"><ons-icon icon="md-edit" size="18px"></ons-icon> &nbsp;&nbsp;&nbsp;&nbsp; Update
+            </button>
+          </center>
+
+           <center>
+            <button class="btn btn-warning w-50 btn-sm mt-3" id="swapRoom" onclick="swapRoom()">
+            <ons-icon icon="md-refresh-sync" size="18px"></ons-icon>  Swap Room
+          </button>
+          </center>
+
+          <center>
+            <button class="btn w-50 btn-sm mt-3" id="bdeactivateBoarder" onclick="deactivateBoarder()">
+            <ons-icon icon="md-block" size="18px"></ons-icon> &nbsp; Deactivate
+          </button>
+          </center>
+
+      </td>
+      </tr>
+    </table>
+    
+    
+		
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+    var boarderID = localStorage.getItem('boarderIdBill');
+
+    var boarderNAME = localStorage.getItem('boarderNameBill');
+
+  	
+    // getBoarderBillingDetails(boarderID);
+
+
+    function getBoarderBillingDetails(boarderID){
+        myDB.transaction(function(trans) {
+          trans.executeSql("SELECT boarders.*, houses.house_name as hn, rooms.room_name as rn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id INNER JOIN houses ON houses.id=rooms.house_id WHERE boarders.id=?", [boarderID], (tx, results)=> {
+
+            var isAct = 'Active';
+            var isActCol = 'text-info'
+
+            if(results.rows.item(0).active_boarder == '0'){
+                isAct = 'Not Active';
+                isActCol = 'text-secondary';
+
+                $('#bupdateBoarder').hide();
+                $('#swapRoom').hide()
+
+                // $('#bdeactivateBoarder').attr('disabled', true);
+                // if(localStorage.getItem('isCheckNotActive') == 'true'){
+                  $('#bdeactivateBoarder').empty();
+                  $('#bdeactivateBoarder').append('<ons-icon icon="md-power" size="18px"></ons-icon> &nbsp;&nbsp; Activate');
+                // }
+
+                $('#bdeactivateBoarder').addClass('btn-info');
+            }else{
+              $('#bdeactivateBoarder').addClass('btn-secondary');
+            }
+
+
+              $('#boarderNameView').append('<b>'+toUpper(results.rows.item(0).boarder_name)+'</b>');
+              $('#contactNumView1').append('<b>'+results.rows.item(0).contact1+'</b>');
+              $('#contactNumView2').append('<b>'+results.rows.item(0).contact2+'</b>');
+              $('#companionView').append('<b>'+toUpper(results.rows.item(0).companion)+'</b>');
+              $('#companionNumView').append('<b>'+results.rows.item(0).comp_contact+'</b>');
+              $('#houseNameView').append('<b>'+results.rows.item(0).hn+'</b>');
+              $('#roomNameView').append('<b>'+results.rows.item(0).rn+'</b>');
+              $('#roomRateView').append('<b>'+formatMoney(results.rows.item(0).room_rate)+'</b>');
+              $('#dateStartedView').append('<b>'+formatDate(results.rows.item(0).date_started)+'</b>');
+              $('#activeBoarderView').append('<b><font class="'+isActCol+'">'+isAct+'</font></b>');
+
+              roomIDdeactivate = results.rows.item(0).room_id;
+
+              roomIDToSwap = results.rows.item(0).room_id;
+              roomRateSwap = results.rows.item(0).room_rate;
+
+              $('#currHouseName').text(results.rows.item(0).hn)
+              $('#currRoomName').text(results.rows.item(0).rn)
+          })
+        }, function (err){
+          console.log(err);
+        })
+    }
+
+    function formatMoney(number) {
+      return number.toLocaleString('en-US', { style: 'currency', currency: 'php' });
+    }
+
+
+    function formatDate(dt){
+      var dte = new Date(dt);
+      var mos = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return mos[dte.getMonth()]+' '+dte.getDate()+', '+dte.getFullYear();
+
+    }
+
+    function toUpper(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+
+
+
+   
+
+  </script>
+
+  <style type="text/css">
+   
+   td{
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+   }
+
+  </style>
+
+</ons-page>

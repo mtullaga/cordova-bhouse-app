@@ -1,0 +1,119 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button onclick="fn.open()">
+        <ons-icon icon="md-menu" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      House List
+    </div>
+
+    <div class="right">
+      <ons-toolbar-button onclick="fn.load('houses/addHouse.html')">
+        <ons-icon icon="md-plus" size="22px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+  </ons-toolbar>
+
+ <div class="container" id="houseList">
+
+  </div>
+
+  <script type="text/javascript">
+    // $('#setName').text(localStorage.getItem("positionLogged")); 
+   
+
+    // For Mobile Only
+    // var myDB = window.sqlitePlugin.openDatabase({name: "mySQLite.db", location: 'default'});
+
+    // For Browser Only
+    var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+    loadHouseList();
+
+
+    function loadHouseList(){
+        $("#houseList").empty(); // Empty the House List
+
+        myDB.transaction(function(trans) {
+          trans.executeSql("SELECT *, (SELECT Count(*) FROM rooms WHERE rooms.house_id = houses.id AND rooms.active='1') as roomCount, (SELECT Count(*) FROM rooms WHERE rooms.house_id = houses.id AND rooms.vaccant='1' AND rooms.active='1') as vaccantCount FROM houses WHERE active='1'", [], (tx, results)=> {
+              var len = results.rows.length, i, houseName;
+              var houseId = '';
+
+              for (i = 0; i < len; i++) {
+                  var name = results.rows.item(i).house_name;
+                  var id = results.rows.item(i).id;
+                  var roomCount = results.rows.item(i).roomCount;
+                  var vaccantCount = results.rows.item(i).vaccantCount;
+
+                  $('#houseList').append(''+
+                    '<div class="card" style="margin-top: 15px">'+
+                      '<div class="card-body">'+
+                        '<button class="btn btn-danger btn-sm float-right" style="margin-top: 8px" onclick="deleteHouse('+id+',\''+name+'\')">Delete</button>'+
+                        '<button class="btn btn-primary btn-sm float-right mr-2" style="margin-top: 8px" onclick="editHouse('+id+',\''+name+'\')">Update</button>'+
+                        '<h4 class="card-title"><b>'+name+'</b></h4>'+
+                        '<hr style="margin-top: -10px">'+
+                          'Number of Rooms:&nbsp;&nbsp;&nbsp;<b>'+ roomCount +'</b><br>'+
+                          'Number of Vaccant:&nbsp;&nbsp;<b>'+ vaccantCount +'</b><br>'+
+                          '<center>'+
+                            '<button class="btn btn-success btn-sm center" style="margin-top: 8px" onclick="showRooms('+id+',\''+name+'\')">Show Room List</button>'+
+                          '</center>'+
+                      '</div>'+
+                    '</div>');
+              }
+
+
+          });
+      }, function(err){
+        console.log(err.message);
+      });
+
+    }
+
+    function editHouse(id, name){
+      localStorage.setItem('editHouseId', id);
+      localStorage.setItem('editHouseName', name);
+      fn.load('houses/editHouse.html');
+    }
+
+    function deleteHouse(id, name){
+      ons.notification.confirm({
+        message: 'You want to delete <b>'+name+'</b>?',
+        buttonLabels: ['Yes', 'No'],
+        callback: function(i) {
+          if (i==0) {
+             myDB.transaction(function(trans) {
+                  trans.executeSql("UPDATE houses SET active='0' WHERE id='"+id+"'", [], (tx, results)=> {
+                  })
+              }, (err)=>{
+                console.log(err.message);
+              }, (res)=>{
+                  console.log('Done.');
+                  loadHouseList();
+                  ons.notification.alert('Successfully deleted.');
+              });
+          }
+        }
+      });
+
+    } 
+
+    function showRooms(id, name){
+      localStorage.setItem('houseIdRoomList', id);
+      localStorage.setItem('houseNameRoomList', name);
+      fn.load('houses/roomList.html');
+    }
+   
+
+  </script>
+
+  <style type="text/css">
+    .card, .card-body{
+      padding: 0px 5px 5px 5px;
+
+    },
+
+  </style>
+
+</ons-page>

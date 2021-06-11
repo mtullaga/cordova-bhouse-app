@@ -1,0 +1,73 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('houses/house.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Edit House
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+		<br>
+		  <div class="form-group">
+		    <label for="houseName">Enter New House Name:</label>
+		    <input type="text" name="houseName" id="houseName" class="form-control form-control-sm">
+		  </div>
+
+		  <center><button onclick="submitHouse()" class="btn btn-primary">Submit</button></center>
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+  	$('#houseName').val(localStorage.getItem('editHouseName'));
+  	$('#houseName').focus();
+
+    function submitHouse(){
+
+    	var houseName = $('#houseName').val();
+    	var houseId = localStorage.getItem('editHouseId');
+
+		if(houseName==''){
+			ons.notification.alert({
+				message:'Please input new house name.',
+				callback: function(){
+					$('#houseName').focus();
+				}
+			});
+    	}else{
+	    	myDB.transaction(function(trans) {
+			    var executeQuery = "UPDATE houses SET house_name=? WHERE id="+houseId;
+			    trans.executeSql(executeQuery, [houseName], function(tx, result) {
+						ons.notification.alert({
+							message:'House name successfully updated.',
+							callback: function(){
+								fn.load('houses/house.html');
+							}
+						});
+						
+			        },
+			        function(error) {
+			            console.log('Error occurred');
+			        });
+			});
+	    }
+
+    }
+
+  </script>
+
+  <style type="text/css">
+   
+
+  </style>
+
+</ons-page>

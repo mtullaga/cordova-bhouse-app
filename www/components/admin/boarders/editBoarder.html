@@ -1,0 +1,310 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('boarders/boarderOpen.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Edit Boarder
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+		<br>
+		  <div class="form-group">
+		    <label for="boarderName">Boarder Name:</label>
+		    <input type="text" name="boarderName" id="editboarderName" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="contact1">Contact #1:</label>
+		    <input type="text" name="contact1" id="editcontact1" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="contact2">Contact #2:</label>
+		    <input type="text" name="contact2" id="editcontact2" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="companion">Companion:</label>
+		    <input type="text" name="companion" id="editcompanion" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="companionContact">Companion Contact #:</label>
+		    <input type="text" name="companionContact" id="editcompanionContact" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+	            <label for="chooseHouse">Select House:</label>
+	            <select class="form-control form-control-sm" id="editchooseHouse1" style="margin-top: -8px" onchange="editSelectHouse2(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+	            <label for="chooseRoom">Select Room:</label>
+	            <select class="form-control form-control-sm" id="editchooseRoom" style="margin-top: -8px" onchange="editSelectRoom1(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+		    <label for="roomRate">Room Rate per Month:</label>
+		    <input type="text" name="roomRate" id="editroomRate" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="dateStarted">Date Started:</label>
+		    <input type="date" name="dateStarted" id="editdateStarted" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		   <center>
+            <button onclick="changeRoom()" class="btn btn-success mt-2 w-50">
+            	<ons-icon icon="md-edit" class="float-left" size="18px"></ons-icon> <center>Change Room</center>
+            </button>
+          </center>
+
+           <center>
+            <button onclick="submitEditBoarder()" class="btn btn-primary mt-3 w-50 mb-3">
+            	<ons-icon icon="md-check" class="float-left" size="18px"></ons-icon> <center>Submit</center>
+            </button>
+          </center>
+		  <br>
+
+<!-- 		  <ons-modal id="modalLoading">.
+		  	<ons-icon icon="gear" spin="true" style="line-height: 20px; vertical-align: middle;"></ons-icon>
+    		<span style="line-height: 20px; font-size: 15px;">Loading...</span>
+		  </ons-modal> -->
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	// var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+  	//  $('#boarderName').focus();
+
+  	loadEditBoarderDetails();
+
+  	var recentRoomID;
+
+  	function loadEditBoarderDetails(){
+  		var boarderID = localStorage.getItem('boarderIdView');
+
+  		var roomID = '';
+
+
+
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT boarders.*, rooms.room_name as rn, houses.house_name as hn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id INNER JOIN houses ON houses.id = rooms.house_id WHERE boarders.id=?", [boarderID], (tx, results)=> {
+
+          	 $('#editboarderName').val(results.rows.item(0).boarder_name);
+          	 $('#editcontact1').val(results.rows.item(0).contact1);
+          	 $('#editcontact2').val(results.rows.item(0).contact2);
+          	 $('#editcompanion').val(results.rows.item(0).companion);
+          	 $('#editcompanionContact').val(results.rows.item(0).comp_contact);
+          	 $('#editroomRate').val(results.rows.item(0).room_rate);
+          	 $('#editdateStarted').val(results.rows.item(0).date_started);
+
+          	 $('#editchooseRoom').append(
+                    '<option value="'+results.rows.item(0).room_id+'">'+results.rows.item(0).rn+'</option>'
+          		);
+
+          	 recentRoomID = results.rows.item(0).room_id;
+
+          	  $('#editchooseHouse1').append(
+	                '<option>'+results.rows.item(0).hn+'</option>'
+	               );
+
+          	  $('#editchooseRoom').prop('disabled', 'disabled')
+          	  $('#editchooseHouse1').prop('disabled', 'disabled')
+
+
+          })
+
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+
+  	function changeRoom(){
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE active = '1' AND vaccant='1'", [], (tx, results)=> {
+            var len = results.rows.length;
+
+            	if(len == 0){
+            		ons.notification.alert('Sorry, no rooms vaccant.');
+	          	}else{
+	          		$('#editchooseRoom').prop('disabled', false)
+			        $('#editchooseHouse1').prop('disabled', false)
+			  		loadHouseList1();
+	          	}
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+
+  	function editSelectHouse2(event){
+  		var houseID = event.target.value;
+  		loadRoomList(houseID);
+  	}
+
+
+  	function editSelectRoom1(event){
+  		var roomID = event.target.value;
+  		setRoomRate(roomID);
+  	}
+
+
+  	function setRoomRate(roomID){
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE id="+roomID, [], (tx, results)=> {
+          	 $('#editroomRate').val(results.rows.item(0).rate);
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+  	function loadRoomList(houseID){
+  		$('#editchooseRoom').empty();
+
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE active = '1' AND vaccant='1' AND house_id=?", [houseID], (tx, results)=> {
+            var len = results.rows.length, i;
+
+            	if(len > 0){
+	              for (i = 0; i < len; i++) {
+
+	                  $('#editchooseRoom').append(
+	                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).room_name+'</option>'
+	                  );
+	              }
+	              setRoomRate($('#editchooseRoom').val());
+	          	}else{
+	          		ons.notification.alert('Sorry, no rooms vaccant.');
+	          	}
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+
+  	function loadHouseList1(){
+  		$('#editchooseHouse1').empty()
+      myDB.transaction(function(trans) {
+          trans.executeSql("SELECT DISTINCT houses.* FROM houses INNER JOIN rooms ON houses.id = rooms.house_id WHERE houses.active = '1' AND rooms.vaccant = '1'", [], (tx, results)=> {
+            var len = results.rows.length, i;
+
+              for (i = 0; i < len; i++) {
+                  $('#editchooseHouse1').append(
+                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).house_name+'</option>'
+                  );
+              }
+              loadRoomList($('#editchooseHouse1').val());
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+    }
+
+    function submitEditBoarder(){
+    	var boarderID = localStorage.getItem('boarderIdView');
+    	var boarderName = $('#editboarderName').val();
+    	var contact1 = $('#editcontact1').val();
+    	var contact2 = $('#editcontact2').val();
+    	var companion = $('#editcompanion').val();
+    	var companionContact = $('#editcompanionContact').val();
+    	var chooseRoom = $('#editchooseRoom').val();
+    	var roomRate = $('#editroomRate').val();
+    	var dateStarted = $('#editdateStarted').val();
+
+
+		if(boarderName==''){
+			ons.notification.alert({
+				message:'Please input boarders name.',
+				callback: function(){
+					$('#editboarderName').focus();
+				}
+			});
+    	}else if(roomRate==''){
+    		ons.notification.alert({
+				message:'Please input room rate.',
+				callback: function(){
+					$('#editroomRate').focus();
+				}
+			});
+    	}else{
+
+    		ons.notification.confirm({
+                message: 'Are you sure you want to update boarder details?',
+                buttonLabels: ['Yes', 'No'],
+                callback: function(i) {
+                    if (i==0) {
+				    	myDB.transaction(function(trans) {
+						    var executeQuery = "UPDATE boarders SET boarder_name=?, contact1=?, contact2=?, companion=?, comp_contact=?,  room_id=?, room_rate=?, date_started=? WHERE id=?";
+
+						    trans.executeSql(executeQuery, [boarderName, contact1, contact2, companion, companionContact, chooseRoom, roomRate, dateStarted, boarderID], function(tx, result) {
+
+						    		// console.log(recentRoomID)
+						    		editRecentRoomStatus(recentRoomID);
+						           	ons.notification.alert({
+										message:'Boarder successfully updated.',
+										callback: function(){
+											fn.load('boarders/boarders.html');
+										}
+									});
+						        },
+						        function(error) {
+						            alert('Error occurred: '+error);
+						        });
+						});
+			  		}
+                }
+              });
+	    }
+
+    }
+
+    function editRoomStatus(roomID){
+    	myDB.transaction(function(trans) {
+		    trans.executeSql("UPDATE rooms SET vaccant='0' WHERE id=?", [roomID], function(tx, result) {
+		        console.log('Success Update new room')
+	        },
+	        function(error) {
+	            alert('Error occurred: '+error);
+	        });
+		});
+    }
+
+    function editRecentRoomStatus(roomID){
+    	myDB.transaction(function(trans) {
+		    trans.executeSql("UPDATE rooms SET vaccant='1' WHERE id=?", [roomID], function(tx, result) {
+		        console.log('Success Update recent room')
+		        editRoomStatus($('#editchooseRoom').val());
+	        },
+	        function(error) {
+	            alert('Error occurred: '+error);
+	        });
+		});
+    }
+
+  </script>
+
+  <style type="text/css">
+   
+
+  </style>
+
+</ons-page>

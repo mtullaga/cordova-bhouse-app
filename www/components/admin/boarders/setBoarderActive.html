@@ -1,0 +1,195 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('boarders/boarders.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Select Boarder Room
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+		<br>
+
+		Boarder Name: <b><font id="boardName"></font></b>
+		<br>
+		<br>
+		  <div class="form-group">
+	            <label for="chooseHouse">Select House:</label>
+	            <select class="form-control form-control-sm" id="chooseHouse1Active" style="margin-top: -8px" onchange="editSelectHouse1Active(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+	            <label for="chooseRoom">Select Room:</label>
+	            <select class="form-control form-control-sm" id="chooseRoomActive" style="margin-top: -8px" onchange="editSelectRoomActive(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+		    <label for="roomRate">Room Rate per Month:</label>
+		    <input type="number" name="roomRate" id="roomRateActive" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="dateStarted">Date Started:</label>
+		    <input type="date" name="dateStarted" id="dateStartedActive" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+
+		  <center><button onclick="submitBoarderActive()" class="btn btn-primary">Submit</button></center>
+		  <br>
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+  	// var dtoday = new Date();
+
+  	// var ndate = dtoday.getFullYear()+'-'+dtoday.getMonth()+'-'+dtoday.getDate();
+
+  	$('#dateStartedActive').val(setDateNowVal());
+
+  	$('#boardName').text(localStorage.getItem('boarderNameSetActive'));
+
+  	loadHouseList1();
+
+  	function setDateNowVal(){
+  		var now = new Date();
+  		var month = (now.getMonth()+1);
+  		var day = now.getDate();
+  		if(month < 10)
+  			month = '0'+month;
+  		if(day < 10)
+  			day = '0'+day;
+  		var today = now.getFullYear() + '-'+month+'-'+day;
+  		return today;
+  	}
+
+  	function editSelectHouse1Active(event){
+  		var houseID = event.target.value;
+  		loadRoomList(houseID);
+  	}
+
+  	function editSelectRoomActive(event){
+  		var roomID = event.target.value;
+  		setRoomRate(roomID);
+  	}
+
+  	function setRoomRate(roomID){
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE id="+roomID, [], (tx, results)=> {
+          	 $('#roomRateActive').val(results.rows.item(0).rate);
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+  	function loadRoomList(houseID){
+  		$('#chooseRoomActive').empty();
+
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE active = '1' AND vaccant='1' AND house_id="+houseID, [], (tx, results)=> {
+            var len = results.rows.length, i;
+
+              for (i = 0; i < len; i++) {
+
+                  $('#chooseRoomActive').append(
+                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).room_name+'</option>'
+                  );
+              }
+              setRoomRate($('#chooseRoomActive').val());
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+
+  	 function loadHouseList1(){
+	      myDB.transaction(function(trans) {
+	          trans.executeSql("SELECT DISTINCT houses.* FROM houses INNER JOIN rooms ON houses.id = rooms.house_id WHERE houses.active = '1' AND rooms.vaccant = '1'", [], (tx, results)=> {
+	            var len = results.rows.length, i;
+
+	              for (i = 0; i < len; i++) {
+	                  $('#chooseHouse1Active').append(
+	                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).house_name+'</option>'
+	                  );
+	              }
+                loadRoomList($('#chooseHouse1Active').val());
+	           
+	          })
+	        }, function(err){
+	            console.log(err);
+	        })
+	    }
+
+    function submitBoarderActive(){
+
+    	var chooseRoom = $('#chooseRoomActive').val();
+    	var roomRate = $('#roomRateActive').val();
+    	var dateStarted = $('#dateStartedActive').val();
+
+        var boardID = localStorage.getItem('boarderIdSetActive');
+
+
+
+		if(roomRate==''){
+    		ons.notification.alert({
+				message:'Please input room rate.',
+				callback: function(){
+					$('#roomRate').focus();
+				}
+			});
+    	}else{
+	    	myDB.transaction(function(trans) {
+			    var executeQuery = "UPDATE boarders SET active_boarder='1', room_id=?, room_rate=?, date_started=? WHERE id=?";
+
+			    trans.executeSql(executeQuery, [chooseRoom, roomRate, dateStarted, boardID], function(tx, result) {
+			           	
+			           	editRoomStatus(chooseRoom);
+			           	
+			           	ons.notification.alert({
+							message:'Boarder succesfully set into active.',
+							callback: function(){
+								fn.load('boarders/boarders.html');
+							}
+						});
+					
+		        },
+		        function(error) {
+		            alert('Error occurred: '+error);
+		        });
+			});
+	    }
+    }
+
+
+    function editRoomStatus(roomID){
+    	myDB.transaction(function(trans) {
+  		    trans.executeSql("UPDATE rooms SET vaccant='0' WHERE id=?", [roomID], function(tx, result) {
+  		        console.log('Success Update')
+  	        },
+  	        function(error) {
+  	            alert('Error occurred: '+error);
+  	        });
+  		});
+    }
+
+  </script>
+
+  <style type="text/css">
+   
+
+  </style>
+
+</ons-page>

@@ -1,0 +1,233 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('boarders/boarders.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Add Boarder
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+		<br>
+		  <div class="form-group">
+		    <label for="boarderName">Boarder Name:</label>
+		    <input type="text" name="boarderName" id="boarderName" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="contact1">Contact #1:</label>
+		    <input type="number" name="contact1" id="contact1" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="contact2">Contact #2:</label>
+		    <input type="number" name="contact2" id="contact2" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="companion">Companion:</label>
+		    <input type="text" name="companion" id="companion" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="companionContact">Companion Contact #:</label>
+		    <input type="number" name="companionContact" id="companionContact" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+	            <label for="chooseHouse">Select House:</label>
+	            <select class="form-control form-control-sm" id="chooseHouse1" style="margin-top: -8px" onchange="editSelectHouse1(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+	            <label for="chooseRoom">Select Room:</label>
+	            <select class="form-control form-control-sm" id="chooseRoom" style="margin-top: -8px" onchange="editSelectRoom(event)">
+	            </select>
+	      </div>
+
+	      <div class="form-group">
+		    <label for="roomRate">Room Rate per Month:</label>
+		    <input type="number" name="roomRate" id="roomRate" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="dateStarted">Date Started:</label>
+		    <input type="date" name="dateStarted" id="dateStarted" class="form-control form-control-sm" style="margin-top: -8px">
+		  </div>
+
+		  <center>
+            <button onclick="submitBoarder()" class="btn btn-primary">
+            	<ons-icon icon="md-plus" size="18px"></ons-icon> &nbsp;&nbsp; Submit
+            </button>
+          </center>
+
+		  <br>
+
+
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+  	$('#boarderName').focus();
+
+  	// var dtoday = new Date();
+
+  	// var ndate = dtoday.getFullYear()+'-'+dtoday.getMonth()+'-'+dtoday.getDate();
+
+  	$('#dateStarted').val(setDateNowVal());
+
+  	loadHouseList1();
+
+  	function setDateNowVal(){
+  		var now = new Date();
+  		var month = (now.getMonth()+1);
+  		var day = now.getDate();
+  		if(month < 10)
+  			month = '0'+month;
+  		if(day < 10)
+  			day = '0'+day;
+  		var today = now.getFullYear() + '-'+month+'-'+day;
+  		return today;
+  	}
+
+  	function editSelectHouse1(event){
+  		var houseID = event.target.value;
+  		loadRoomList(houseID);
+  	}
+
+  	function editSelectRoom(event){
+  		var roomID = event.target.value;
+  		setRoomRate(roomID);
+  	}
+
+  	function setRoomRate(roomID){
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE id="+roomID, [], (tx, results)=> {
+          	 $('#roomRate').val(results.rows.item(0).rate);
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+  	function loadRoomList(houseID){
+  		$('#chooseRoom').empty();
+
+  		myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE active = '1' AND vaccant='1' AND house_id="+houseID, [], (tx, results)=> {
+            var len = results.rows.length, i;
+
+              for (i = 0; i < len; i++) {
+
+                  $('#chooseRoom').append(
+                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).room_name+'</option>'
+                  );
+              }
+
+              setRoomRate($('#chooseRoom').val());
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+  	}
+
+
+  	 function loadHouseList1(){
+	      myDB.transaction(function(trans) {
+	          trans.executeSql("SELECT DISTINCT houses.* FROM houses INNER JOIN rooms ON houses.id = rooms.house_id WHERE houses.active = '1' AND rooms.vaccant = '1'", [], (tx, results)=> {
+	            var len = results.rows.length, i;
+
+	              for (i = 0; i < len; i++) {
+	                  $('#chooseHouse1').append(
+	                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).house_name+'</option>'
+	                  );
+	              }
+
+	              loadRoomList($('#chooseHouse1').val());
+	           
+	          })
+	        }, function(err){
+	            console.log(err);
+	        })
+	    }
+
+    function submitBoarder(){
+
+    	var boarderName = $('#boarderName').val();
+    	var contact1 = $('#contact1').val();
+    	var contact2 = $('#contact2').val();
+    	var companion = $('#companion').val();
+    	var companionContact = $('#companionContact').val();
+    	var chooseRoom = $('#chooseRoom').val();
+    	var roomRate = $('#roomRate').val();
+    	var dateStarted = $('#dateStarted').val();
+
+
+
+		if(boarderName==''){
+			ons.notification.alert({
+				message:'Please input boarders name.',
+				callback: function(){
+					$('#boarderName').focus();
+				}
+			});
+    	}else if(roomRate==''){
+    		ons.notification.alert({
+				message:'Please input room rate.',
+				callback: function(){
+					$('#roomRate').focus();
+				}
+			});
+    	}else{
+	    	myDB.transaction(function(trans) {
+			    var executeQuery = "INSERT INTO boarders (boarder_name, contact1, contact2, companion, comp_contact, active_boarder, room_id, room_rate, active, date_started) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+			    trans.executeSql(executeQuery, [boarderName, contact1, contact2, companion, companionContact, '1', chooseRoom, roomRate, '1', dateStarted], function(tx, result) {
+			           	
+			    		editRoomStatus(chooseRoom);
+			           	ons.notification.alert({
+							message:'New boarder successfully added.',
+							callback: function(){
+								fn.load('boarders/boarders.html');
+							}
+						});
+					
+		        },
+		        function(error) {
+		            alert('Error occurred: '+error);
+		        });
+			});
+	    }
+    }
+
+
+    function editRoomStatus(roomID){
+    	myDB.transaction(function(trans) {
+		    trans.executeSql("UPDATE rooms SET vaccant='0' WHERE id=?", [roomID], function(tx, result) {
+		        console.log('Success Update')
+	        },
+	        function(error) {
+	            alert('Error occurred: '+error);
+	        });
+		});
+    }
+
+  </script>
+
+  <style type="text/css">
+   
+
+  </style>
+
+</ons-page>

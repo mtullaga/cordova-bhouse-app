@@ -1,0 +1,298 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button onclick="fn.open()">
+        <ons-icon icon="md-menu" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+        Boarders Billing
+    </div>
+    <div class="right">
+    
+    </div>
+  </ons-toolbar>
+
+  <div class="container mb-4">
+    <div class="row">
+<!-- 
+      <fieldset class="border border-dark pl-2 bg-light" style="width: 90%">
+        <legend class="w-auto h5">Mernante</legend>
+        dsfsdfdfsgdsfg
+      </fieldset>
+ -->
+
+        <div class="col-sm-12" style="border: 0px solid green">
+             <div class="form-group float-left" style="width: 45%; margin-top: 5px">
+                <label for="chooseHouse">Select House:</label>
+                <select class="form-control form-control-sm" onchange="editSelectHouseLoad(event)" id="chooseHouse" style="margin-top: -10px">
+                  <option selected value='all'>All</option>
+                </select>
+            </div>
+
+            <div class="form-group float-left" style="width: 40%; margin: 15px 0px 0px 40px">
+               <div class="checkbox float-right">
+                  <label><input type="checkbox" id="chkInclude" onchange="chkIncludeChange()"> Show not active Boarders</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 mt-2 mb-1" style="border:0px solid green">
+            <!-- <ons-search-input placeholder="Search" id="searchBoarder" class="mb-2 float-left" style="width: 45%;">
+            </ons-search-input> -->
+             <!-- Actual search box -->
+              <label class="sr-only" for="searchBoarder">Search</label>
+              <div class="input-group mb-2 mr-sm-2">
+                <div class="input-group-prepend">
+                  <div class="input-group-text"><span class="fa fa-search"></span></div>
+                </div>
+                <input type="text" class="form-control form-sm" id="searchBoarder" placeholder="Search">
+              </div>
+        </div>
+    </div>
+
+    <div class="row bg-white">
+      <div class="col-sm-12 pb-3">
+          <font class="float-right mt-2 font-weight-bold" id="lblisActive"></font>
+
+        <div id="boarderList">
+        </div>
+      </div>
+      
+    </div>
+    
+
+  </div>
+    
+
+    
+  <script type="text/javascript">
+    // For Mobile Only
+    // var myDB = window.sqlitePlugin.openDatabase({name: "mySQLite.db", location: 'default'});
+
+    // For Browser Only
+    var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+    loadHouseListBoarder();
+
+    // Under Observation kay sa dili mn gud mo gana usahay sa bluestack
+    $('#searchBoarder').keyup(function(evt){
+        loadBoarderListFromSearch(evt.target.value);
+        
+    });
+
+
+    function chkIncludeChange(){
+      $('#searchBoarder').val('');
+      loadBoarderList($('#chooseHouse').val());
+    }
+
+
+    loadBoarderList('all');
+
+
+
+    function loadBoarderListFromSearch(txtSearch){
+       var isInclude = '1';
+
+       $('#boarderList').empty();
+
+       var houseID = $('#chooseHouse').val();
+
+        if($("#chkInclude").is(':checked')){
+          isInclude = '0';
+        }
+
+      if(houseID == 'all'){
+        myDB.transaction(function(trans) {
+          var sqlQuery = "SELECT boarders.*, rooms.room_name as rn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id WHERE (boarder_name LIKE ? OR companion LIKE ?) AND active_boarder='"+isInclude+"' AND boarders.active='1'";
+          trans.executeSql(sqlQuery, ["%"+txtSearch+"%", "%"+txtSearch+"%"], (tx, results)=> {
+            var len = results.rows.length, i;
+              for (i = 0; i < len; i++) {
+
+                var id = results.rows.item(i).id;
+                var name = results.rows.item(i).boarder_name;
+                var com_name = results.rows.item(i).companion;
+                var room_name = results.rows.item(i).rn;
+                var act_boarder = results.rows.item(i).active_boarder;
+                var roomID = results.rows.item(i).room_id;
+
+                   $('#boarderList').append(
+                    '<ons-gesture-detector id="detect'+id+'" class="mt-3">'+
+                     '<fieldset class="border rounded border-secondary pl-2 bg-light" style="width: 100%; padding-top:-10px"  onclick="openBoarder('+id+',\''+name+'\')"><legend class="w-auto h6 font-weight-bold m-0">'+room_name+'</legend>'+name+', '+com_name+'</fieldset></ons-gesture-detector>');
+              }
+
+              if(len==0){
+                $('#boarderList').append('<center><font style="font-size: 15px; "><br><br>No Boarders List found.</font></center>');
+              }
+
+          })
+        }, function(err){
+            console.log(err);
+        })
+      }else{
+        myDB.transaction(function(trans) {
+          var sqlQuery = "SELECT boarders.*, rooms.room_name as rn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id WHERE room_id IN (SELECT id from rooms WHERE house_id=?) AND active_boarder='"+isInclude+"' AND boarders.active='1' AND (boarder_name LIKE ? OR companion LIKE ?) ";
+          trans.executeSql(sqlQuery, [houseID, "%"+txtSearch+"%", "%"+txtSearch+"%"], (tx, results)=> {
+            var len = results.rows.length, i;
+              for (i = 0; i < len; i++) {
+
+                var id = results.rows.item(i).id;
+                var name = results.rows.item(i).boarder_name;
+                var com_name = results.rows.item(i).companion;
+                var room_name = results.rows.item(i).rn;
+                var act_boarder = results.rows.item(i).active_boarder;
+                var roomID = results.rows.item(i).room_id;
+
+                   $('#boarderList').append(
+                    '<ons-gesture-detector id="detect'+id+'" class="mt-3">'+
+                     '<fieldset class="border rounded border-secondary pl-2 bg-light" style="width: 100%; padding-top:-10px"  onclick="openBoarder('+id+',\''+name+'\')"><legend class="w-auto h6 font-weight-bold m-0">'+room_name+'</legend>'+name+', '+com_name+'</fieldset></ons-gesture-detector>');
+
+              }
+
+              if(len==0){
+                $('#boarderList').append('<center><font style="font-size: 15px; "><br><br>No Boarders List found.</font></center>');
+              }
+
+          })
+        }, function(err){
+            console.log(err);
+        })
+      }
+    }
+
+
+    function openBoarder(id, name){
+        
+        localStorage.setItem('boarderNameBill', name);
+        localStorage.setItem('boarderIdBill', id);
+        // localStorage.setItem('isCheckNotActive', isCHK);
+
+        fn.load('billings/boarderBilling.html');
+        // console.log(id)
+    }
+
+    function editSelectHouseLoad(evt){
+        $('#searchBoarder').val('')
+        var houseID = evt.target.value;
+        loadBoarderList(houseID);
+    }
+
+    function loadBoarderList(houseID){
+
+      var isInclude = '1';
+
+      if($("#chkInclude").is(':checked')){
+        isInclude = '0';
+        $('#lblisActive').removeClass('text-primary');
+        $('#lblisActive').addClass('text-secondary');
+        $('#lblisActive').text('Not Active Boarder List')
+      }else{
+        $('#lblisActive').removeClass('text-secondary');
+        $('#lblisActive').addClass('text-primary');
+        $('#lblisActive').text('Active Boarder List')
+      }
+
+
+      $('#boarderList').empty();
+
+
+      if(houseID == 'all'){
+        myDB.transaction(function(trans) {
+          var sqlQuery = "SELECT boarders.*, rooms.room_name as rn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id WHERE active_boarder='"+isInclude+"' AND boarders.active='1'";
+          trans.executeSql(sqlQuery, [], (tx, results)=> {
+            var len = results.rows.length, i;
+              for (i = 0; i < len; i++) {
+
+                var id = results.rows.item(i).id;
+                var name = results.rows.item(i).boarder_name;
+                var com_name = results.rows.item(i).companion;
+                var room_name = results.rows.item(i).rn;
+                var act_boarder = results.rows.item(i).active_boarder;
+                var roomID = results.rows.item(i).room_id;
+
+                   $('#boarderList').append(
+                    '<ons-gesture-detector id="detect'+id+'" class="mt-3">'+
+                     '<fieldset class="border rounded border-secondary pl-2 bg-light" style="width: 100%; padding-top:-10px"  onclick="openBoarder('+id+',\''+name+'\')"><legend class="w-auto h6 font-weight-bold m-0">'+room_name+'</legend>'+name+', '+com_name+'</fieldset></ons-gesture-detector>');
+
+              }
+
+              if(len==0){
+                $('#boarderList').append('<center><font style="font-size: 15px; "><br><br>No Boarders List found.</font></center>');
+              }
+          })
+        }, function(err){
+            console.log(err);
+        })
+      }else{
+        myDB.transaction(function(trans) {
+          var sqlQuery = "SELECT boarders.*, rooms.room_name as rn FROM boarders INNER JOIN rooms ON rooms.id=boarders.room_id WHERE room_id IN (SELECT id from rooms WHERE house_id=?) AND active_boarder='"+isInclude+"' AND boarders.active='1'";
+          trans.executeSql(sqlQuery, [houseID], (tx, results)=> {
+            var len = results.rows.length, i;
+              for (i = 0; i < len; i++) {
+
+                var id = results.rows.item(i).id;
+                var name = results.rows.item(i).boarder_name;
+                var com_name = results.rows.item(i).companion;
+                var room_name = results.rows.item(i).rn;
+                var act_boarder = results.rows.item(i).active_boarder;
+                var roomID = results.rows.item(i).room_id;
+
+                   $('#boarderList').append(
+                    '<ons-gesture-detector id="detect'+id+'" class="mt-3">'+
+                     '<fieldset class="border rounded border-secondary pl-2 bg-light" style="width: 100%; padding-top:-10px"  onclick="openBoarder('+id+',\''+name+'\')"><legend class="w-auto h6 font-weight-bold m-0">'+room_name+'</legend>'+name+', '+com_name+'</fieldset></ons-gesture-detector>');
+
+              }
+
+              if(len==0){
+                $('#boarderList').append('<center><font style="font-size: 15px; "><br><br>No Boarders List found.</font></center>');
+              }
+
+          })
+        }, function(err){
+            console.log(err);
+        })
+      }
+    }
+
+
+    function loadHouseListBoarder(){
+      myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM houses WHERE active = '1'", [], (tx, results)=> {
+            var len = results.rows.length, i;
+
+              for (i = 0; i < len; i++) {
+
+                  $('#chooseHouse').append(
+                    '<option value="'+results.rows.item(i).id+'">'+results.rows.item(i).house_name+'</option>'
+                  );
+              }
+           
+          })
+        }, function(err){
+            console.log(err);
+        })
+    }
+
+
+
+// f($('#checkMeOut').prop('checked')) {
+//     // something when checked
+// } else {
+//     // something else when not
+// }
+
+
+  </script>
+  <style type="text/css">
+
+    .sample
+          {
+          border:2px solid #a1a1a1;
+          padding:10px 40px; 
+          background:#dddddd;
+          width:300px;
+          border-radius:25px;
+          }
+
+  </style>
+</ons-page>

@@ -1,0 +1,218 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('houses/house.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Room List
+    </div>
+
+    <div class="right">
+      <ons-toolbar-button onclick="fn.load('houses/addRoom.html')">
+        <ons-icon icon="md-plus" size="22px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+  </ons-toolbar>
+
+  <div class="container">
+      <h5 id="houseName">House Name: </h5> 
+  </div>
+
+  <div class="container" id="roomList">
+
+  </div>
+
+  <ons-modal id="modalBoarderDetails">
+    <div class="col-sm-12 bg-light text-dark pt-2" style="width: 90%; margin-left: 5%; border-radius: 7px">
+        <h5 id="roomNAME" class="float-left"></h5>
+
+        <button type="button" class="close" onclick="closemodalBoarderDetails()" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+
+        <div id="boarderDetails">
+          
+        </div>
+    </div>
+
+  </ons-modal>
+
+ 
+
+
+  <script type="text/javascript">
+    // $('#setName').text(localStorage.getItem("positionLogged")); 
+   
+
+    // For Mobile Only
+    // var myDB = window.sqlitePlugin.openDatabase({name: "mySQLite.db", location: 'default'});
+
+    // For Browser Only
+    var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+    var houseId = localStorage.getItem('houseIdRoomList');
+    var houseName = localStorage.getItem('houseNameRoomList');
+
+    $('#houseName').append('<u><b>'+houseName+'</u></b>');
+
+
+    loadRoomList();
+
+
+    function loadRoomList(){
+        $("#roomList").empty(); // Empty the House List
+
+        myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM rooms WHERE house_id="+houseId+" AND active='1'", [], (tx, results)=> {
+              var len = results.rows.length, i;
+
+              for (i = 0; i < len; i++) {
+                  var name = results.rows.item(i).room_name;
+                  var id = results.rows.item(i).id;
+                  var rate = results.rows.item(i).rate;
+                  var status = 'Vaccant';
+
+                  // console.log(results.rows.item(i).vaccant);
+
+                  if(results.rows.item(i).vaccant == 0){
+                    status = 'Occupied';
+                  }
+
+                  $('#roomList').append(''+
+                    '<div class="card" style="margin-top: 20px">'+
+                      '<div class="card-body">'+
+                        '<button class="btn btn-danger btn-sm float-right" style="margin: 8px" onclick="deleteRoom('+id+',\''+name+'\')">Delete</button>'+
+                        '<button class="btn btn-primary btn-sm float-right mr-2" style="margin: 8px" onclick="editRoom('+id+',\''+name+'\',\''+rate+'\')">Update</button>'+
+                        '<h5 class="card-title"><b>'+name+'</b></h5>'+
+                        '<hr style="margin-top: 0px">'+
+                          'Room Rate:&nbsp;&nbsp;<b>'+ rate +'</b><br>'+
+                          'Status:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>'+ status +'</b><br>'+
+                          '<center>'+
+                            '<button class="btn btn-success btn-sm center" id="btnShow'+id+'" style="margin-top: 8px" onclick="showBoarder('+id+',\''+name+'\')">Show Boarder/s</button>'+
+                          '</center>'+
+                         
+                          '</div>'+
+                      '</div>'+
+                    '</div>');
+
+                  if(status == 'Vaccant'){
+                    $('#btnShow'+id).hide();
+                  }
+              }
+          });
+      }, function(err){
+        console.log(err.message);
+      });
+
+    }
+
+    function showBoarder(id, name){
+
+      var modal = document.getElementById('modalBoarderDetails');
+      modal.show();
+
+
+      $('#roomNAME').empty();
+      $('#roomNAME').append('<b>'+name+'</b>');
+
+      $('#boarderDetails').empty();
+
+      myDB.transaction(function(trans) {
+          trans.executeSql("SELECT * FROM boarders WHERE room_id="+id+" AND active_boarder='1' AND active='1'", [], (tx, results)=> {
+
+              if(results.rows.length > 0){
+                  var boarder_name = results.rows.item(0).boarder_name;
+                  var contact1 = results.rows.item(0).contact1;
+                  var contact2 = results.rows.item(0).contact2;
+                  var companion = results.rows.item(0).companion;
+                  var comp_contact = results.rows.item(0).comp_contact;
+
+                  $('#boarderDetails').append(''+
+                    '<table class="table mt-1 bg-white" style="width:100%; text-align:left">'+
+                      '<tr>'+
+                        '<td>Border Name:</td>'+
+                        '<td><b>'+boarder_name+'</b></td>'+
+                      '</td>'+
+                      '<tr>'+
+                        '<td>Contact #1:</td>'+
+                        '<td><b>'+contact1+'</b></td>'+
+                      '</td>'+
+                      '<tr>'+
+                        '<td>Contact #2:</td>'+
+                        '<td><b>'+contact2+'</b></td>'+
+                      '</td>'+
+                      '<tr>'+
+                        '<td>Companion:</td>'+
+                        '<td><b>'+companion+'</b></td>'+
+                      '</td>'+
+                      '<tr>'+
+                        '<td>Comp. Contact:</td>'+
+                        '<td><b>'+comp_contact+'</b></td>'+
+                      '</td>'+
+                      '</tr>'+
+                    '</table>');
+              }else{
+                $('#boarderDetails').append('<div class="col-md-12"><center>No Data</div></center>')
+              }
+
+          })  
+      })
+      
+    }
+
+    function closemodalBoarderDetails(){
+      // var modal = document.getElementById('modalBoarderDetails');
+      $('#modalBoarderDetails').hide();
+    }
+
+    function editRoom(id, name, rate){
+      localStorage.setItem('editRoomId', id);
+      localStorage.setItem('editRoomName', name);
+      localStorage.setItem('editRoomRate', rate);
+      fn.load('houses/editRoom.html');
+    }
+
+    function deleteRoom(id, name){
+      ons.notification.confirm({
+        message: 'You want to delete <b>'+name+'</b>?',
+        buttonLabels: ['Yes', 'No'],
+        callback: function(i) {
+          if (i==0) {
+             myDB.transaction(function(trans) {
+                  trans.executeSql("UPDATE rooms SET active='0' WHERE id='"+id+"'", [], (tx, results)=> {
+                  })
+              }, (err)=>{
+                console.log(err.message);
+              }, (res)=>{
+                  loadRoomList();
+                  ons.notification.alert('Successfully deleted.');
+              });
+          }
+        }
+      });
+
+    } 
+
+  </script>
+
+  <style type="text/css">
+    .card, .card-body{
+      padding: 0px 5px 5px 5px;
+
+    },
+
+    #popup {
+      display: none;
+      width: 200px;
+      height: 100px;
+      position: fixed;
+      top: 100%;
+      left: calc(50% - 100px);
+      background-color:cyan;
+    }
+
+  </style>
+
+</ons-page>

@@ -1,0 +1,71 @@
+<ons-page>
+  <ons-toolbar>
+    <div class="left">
+      <ons-toolbar-button  onclick="fn.load('houses/house.html')">
+        <ons-icon icon="md-arrow-left" size="20px"></ons-icon>
+      </ons-toolbar-button>
+    </div>
+    <div class="center">
+      Add House
+    </div>
+  </ons-toolbar>
+
+	<div class="container">
+		<br>
+		  <div class="form-group">
+		    <label for="houseName">House Name:</label>
+		    <input type="text" name="houseName" id="houseName" class="form-control form-control-sm">
+		  </div>
+
+		  <center><button onclick="submitHouse()" class="btn btn-primary">Submit</button></center>
+
+	</div>
+
+
+
+
+  <script type="text/javascript">
+
+  	var myDB = window.openDatabase('my', "0.1", "My list", 200000);
+
+  	$('#houseName').focus();
+
+    function submitHouse(){
+
+    	var houseName = $('#houseName').val();
+
+		if(houseName==''){
+			ons.notification.alert({
+				message:'Please input house name.',
+				callback: function(){
+					$('#houseName').focus();
+				}
+			});
+    	}else{
+	    	myDB.transaction(function(trans) {
+			    var executeQuery = "INSERT INTO houses (house_name, active) VALUES (?, ?)";
+			    trans.executeSql(executeQuery, [houseName, '1'], function(tx, result) {
+			           	ons.notification.alert({
+							message:'New house successfully added.',
+							callback: function(){
+								fn.load('houses/house.html');
+							}
+						});
+						
+			        },
+			        function(error) {
+			            console.log('Error occurred');
+			        });
+			});
+	    }
+
+    }
+
+  </script>
+
+  <style type="text/css">
+   
+
+  </style>
+
+</ons-page>
